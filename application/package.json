@@ -1,0 +1,25 @@
+{
+  "name": "@si/root",
+  "version": "0.1.0",
+  "description": "SI Boilerplate — DDD Application Tier monorepo",
+  "private": true,
+  "workspaces": [
+    "domain",
+    "application",
+    "interface",
+    "infrastructure"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "build:domain": "npm -w @si/domain run build",
+    "build:application": "npm -w @si/application run build",
+    "build:interface": "npm -w @si/interface run build",
+    "build:infrastructure": "npm -w @si/infrastructure run build",
+    "clean": "npm -ws run clean",
+    "test": "npm -ws run test",
+    "lint": "npm -ws run lint"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

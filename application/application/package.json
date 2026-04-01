@@ -1,0 +1,21 @@
+{
+  "name": "@si/application",
+  "version": "0.1.0",
+  "description": "DDD Application Layer — use cases, DTOs, application services",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "rm -rf dist",
+    "test": "node --experimental-vm-modules node_modules/.bin/jest",
+    "lint": "eslint src/"
+  },
+  "dependencies": {
+    "@si/domain": "workspace:*"
+  },
+  "files": [
+    "dist"
+  ],
+  "license": "UNLICENSED",
+  "private": true
+}

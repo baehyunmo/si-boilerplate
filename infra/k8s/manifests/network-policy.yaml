@@ -1,0 +1,222 @@
+# =============================================================================
+# Kubernetes NetworkPolicy Template — SI Boilerplate (Tier 1)
+# =============================================================================
+# Default-deny with explicit allow rules for typical SI application patterns.
+# Requires a CNI plugin that supports NetworkPolicy (Calico, Cilium, etc.).
+#
+# Usage:
+#   export NS=my-app
+#   sed "s/SI_APP_NAMESPACE/$NS/g" network-policy.yaml | kubectl apply -f -
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Default Deny All Ingress
+# -----------------------------------------------------------------------------
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: SI_APP_NAMESPACE
+  labels:
+    app.kubernetes.io/managed-by: si-boilerplate
+    app.kubernetes.io/component: network-policy
+  annotations:
+    description: "Deny all ingress traffic by default"
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+---
+# -----------------------------------------------------------------------------
+# Default Deny All Egress
+# -----------------------------------------------------------------------------
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-egress
+  namespace: SI_APP_NAMESPACE
+  labels:
+    app.kubernetes.io/managed-by: si-boilerplate
+    app.kubernetes.io/component: network-policy
+  annotations:
+    description: "Deny all egress traffic by default"
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+---
+# -----------------------------------------------------------------------------
+# Allow DNS Egress (required for service discovery)
+# -----------------------------------------------------------------------------
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns-egress
+  namespace: SI_APP_NAMESPACE
+  labels:
+    app.kubernetes.io/managed-by: si-boilerplate
+    app.kubernetes.io/component: network-policy
+  annotations:
+    description: "Allow all pods to resolve DNS via kube-dns/CoreDNS"
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+---
+# -----------------------------------------------------------------------------
+# Allow Ingress from Ingress Controller
+# -----------------------------------------------------------------------------
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-controller
+  namespace: SI_APP_NAMESPACE
+  labels:
+    app.kubernetes.io/managed-by: si-boilerplate
+    app.kubernetes.io/component: network-policy
+  annotations:
+    description: "Allow traffic from ingress-nginx namespace to app pods"
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: web
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 8443
+---
+# -----------------------------------------------------------------------------
+# Allow Intra-Namespace Communication
+# -----------------------------------------------------------------------------
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-intra-namespace
+  namespace: SI_APP_NAMESPACE
+  labels:
+    app.kubernetes.io/managed-by: si-boilerplate
+    app.kubernetes.io/component: network-policy
+  annotations:
+    description: "Allow pods within the same namespace to communicate"
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector: {}
+  egress:
+    - to:
+        - podSelector: {}
+---
+# -----------------------------------------------------------------------------
+# Allow Egress to External HTTPS (APIs, registries, etc.)
+# -----------------------------------------------------------------------------
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-external-https-egress
+  namespace: SI_APP_NAMESPACE
+  labels:
+    app.kubernetes.io/managed-by: si-boilerplate
+    app.kubernetes.io/component: network-policy
+  annotations:
+    description: "Allow pods with 'external-access: true' to reach external HTTPS"
+spec:
+  podSelector:
+    matchLabels:
+      network-policy/external-access: "true"
+  policyTypes:
+    - Egress
+  egress:
+    - ports:
+        - protocol: TCP
+          port: 443
+---
+# -----------------------------------------------------------------------------
+# Allow Monitoring (Prometheus scrape)
+# -----------------------------------------------------------------------------
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-prometheus-scrape
+  namespace: SI_APP_NAMESPACE
+  labels:
+    app.kubernetes.io/managed-by: si-boilerplate
+    app.kubernetes.io/component: network-policy
+  annotations:
+    description: "Allow Prometheus to scrape metrics endpoints"
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/has-metrics: "true"
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - protocol: TCP
+          port: 9090
+        - protocol: TCP
+          port: 9091
+        - protocol: TCP
+          port: 8080
+---
+# -----------------------------------------------------------------------------
+# Allow Egress to Database (example: PostgreSQL in db namespace)
+# -----------------------------------------------------------------------------
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-database-egress
+  namespace: SI_APP_NAMESPACE
+  labels:
+    app.kubernetes.io/managed-by: si-boilerplate
+    app.kubernetes.io/component: network-policy
+  annotations:
+    description: "Allow app pods to connect to databases"
+spec:
+  podSelector:
+    matchLabels:
+      network-policy/database-access: "true"
+  policyTypes:
+    - Egress
+  egress:
+    # PostgreSQL
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: database
+      ports:
+        - protocol: TCP
+          port: 5432
+    # Redis
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: database
+      ports:
+        - protocol: TCP
+          port: 6379

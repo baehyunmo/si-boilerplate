@@ -7,31 +7,79 @@
 
 version: "3.9"
 
-services: {}
-  # Example service:
-  # api:
-  #   build:
-  #     context: ../
-  #     dockerfile: interface/Dockerfile
-  #   ports:
-  #     - "8080:8080"
-  #   environment:
-  #     - DATABASE_URL=${DATABASE_URL}
-  #   depends_on:
-  #     - db
-  #
-  # db:
-  #   image: postgres:16-alpine
-  #   environment:
-  #     POSTGRES_DB: app
-  #     POSTGRES_USER: app
-  #     POSTGRES_PASSWORD: ${DB_PASSWORD}
-  #   volumes:
-  #     - db-data:/var/lib/postgresql/data
+services:
+  app:
+    build:
+      context: ../
+      dockerfile: interface/Dockerfile
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: ${DB_NAME:-siapp}
+      DB_USER: ${DB_USER:-siapp}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - si-app-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
-volumes: {}
-  # db-data:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME:-siapp}
+      POSTGRES_USER: ${DB_USER:-siapp}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    networks:
+      - si-app-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-siapp} -d ${DB_NAME:-siapp}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - si-app-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  pg-data:
+    driver: local
+  redis-data:
+    driver: local
 
 networks:
-  default:
+  si-app-network:
     name: si-app-network
+    driver: bridge

@@ -1,22 +1,758 @@
-# ITSM Asset Register
+# ITSM Asset Register (CMDB)
 # SI Boilerplate: Governance Tier (Tier 4)
 #
-# 자산 유형: server, network, storage, software, license
-# 상태: active, inactive, decommissioned, reserved
+# 자산 유형: server, network, storage, application, database, middleware, license
+# 상태: planned, provisioning, active, inactive, decommissioned
+# 환경: production, staging, dev, management
 
-assets: []
-  # - id: ASSET-001
-  #   name: "Production K8s Master"
-  #   type: server
-  #   status: active
-  #   owner: infra-team
-  #   location: datacenter-a
-  #   specs:
-  #     cpu: 8
-  #     memory_gb: 32
-  #     storage_gb: 500
-  #   tags:
-  #     environment: production
-  #     tier: infra
-  #   created_at: "2026-04-01"
-  #   updated_at: "2026-04-01"
+---
+# ============================================================
+# CMDB 스키마 정의
+# ============================================================
+schema:
+  version: "1.0"
+  asset_types:
+    - server
+    - network
+    - storage
+    - application
+    - database
+    - middleware
+    - license
+  statuses:
+    - planned          # 도입 예정
+    - provisioning     # 구축 중
+    - active           # 운영 중
+    - inactive         # 비활성
+    - decommissioned   # 폐기
+  environments:
+    - production
+    - staging
+    - dev
+    - management
+  criticality_levels:
+    - critical         # 장애 시 서비스 중단
+    - high             # 핵심 기능 영향
+    - medium           # 부가 기능 영향
+    - low              # 경미한 영향
+
+# ============================================================
+# 서버 자산 (Servers)
+# ============================================================
+servers:
+  - id: SRV-001
+    name: "K8s Control Plane - AZ-A"
+    type: server
+    status: planned
+    environment: production
+    criticality: critical
+    owner: infra-agent
+    location: datacenter-a
+    specs:
+      cpu: 8
+      memory_gb: 32
+      storage_gb: 200
+      os: "Ubuntu 22.04 LTS"
+    network:
+      vpc: vpc-prod
+      subnet: subnet-mgmt-a
+      private_ip: "10.0.30.10"
+    tags:
+      role: k8s-control-plane
+      tier: infra
+      ha_group: k8s-cp
+    created_at: "2026-04-01"
+    updated_at: "2026-04-01"
+
+  - id: SRV-002
+    name: "K8s Control Plane - AZ-B"
+    type: server
+    status: planned
+    environment: production
+    criticality: critical
+    owner: infra-agent
+    location: datacenter-b
+    specs:
+      cpu: 8
+      memory_gb: 32
+      storage_gb: 200
+      os: "Ubuntu 22.04 LTS"
+    network:
+      vpc: vpc-prod
+      subnet: subnet-mgmt-b
+      private_ip: "10.0.30.11"
+    tags:
+      role: k8s-control-plane
+      tier: infra
+      ha_group: k8s-cp
+    created_at: "2026-04-01"
+    updated_at: "2026-04-01"
+
+  - id: SRV-003
+    name: "K8s Worker Node Pool - AZ-A"
+    type: server
+    status: planned
+    environment: production
+    criticality: critical
+    owner: infra-agent
+    location: datacenter-a
+    specs:
+      cpu: 16
+      memory_gb: 64
+      storage_gb: 500
+      os: "Ubuntu 22.04 LTS"
+      instances: 3
+    network:
+      vpc: vpc-prod
+      subnet: subnet-app-a
+      private_ip_range: "10.0.10.10-10.0.10.12"
+    tags:
+      role: k8s-worker
+      tier: infra
+      ha_group: k8s-worker
+      node_pool: default
+    created_at: "2026-04-01"
+    updated_at: "2026-04-01"
+
+  - id: SRV-004
+    name: "K8s Worker Node Pool - AZ-B"
+    type: server
+    status: planned
+    environment: production
+    criticality: critical
+    owner: infra-agent
+    location: datacenter-b
+    specs:
+      cpu: 16
+      memory_gb: 64
+      storage_gb: 500
+      os: "Ubuntu 22.04 LTS"
+      instances: 3
+    network:
+      vpc: vpc-prod
+      subnet: subnet-app-b
+      private_ip_range: "10.0.10.20-10.0.10.22"
+    tags:
+      role: k8s-worker
+      tier: infra
+      ha_group: k8s-worker
+      node_pool: default
+    created_at: "2026-04-01"
+    updated_at: "2026-04-01"
+
+  - id: SRV-005
+    name: "Bastion Host"
+    type: server
+    status: planned
+    environment: management
+    criticality: high
+    owner: infra-agent
+    location: datacenter-a
+    specs:
+      cpu: 2
+      memory_gb: 4
+      storage_gb: 50
+      os: "Ubuntu 22.04 LTS"
+    network:
+      vpc: vpc-prod
+      subnet: subnet-mgmt-a
+      private_ip: "10.0.30.100"
+      public_ip: allocated
+    tags:
+      role: bastion
+      tier: infra
+    created_at: "2026-04-01"
+    updated_at: "2026-04-01"
+
+# ============================================================
+# 네트워크 자산 (Network)
+# ============================================================
+network:
+  - id: NET-001
+    name: "Production VPC"
+    type: network
+    subtype: vpc
+    status: planned
+    environment: production
+    criticality: critical
+    owner: infra-agent
+    specs:
+      cidr: "10.0.0.0/16"
+      region: "ap-northeast-2"
+    tags:
+      tier: infra
+    created_at: "2026-04-01"
+    updated_at: "2026-04-01"
+
+  - id: NET-002
+    name: "DMZ Subnet"
+    type: network
+    subtype: subnet
+    status: planned
+    environment: production
+    criticality: critical
+    owner: infra-agent
+    specs:
+      cidr: "10.0.1.0/24"
+      availability_zone: "az-a"
+    parent: NET-001
+    tags:
+      tier: infra
+      zone: dmz
+    created_at: "2026-04-01"
+    updated_at: "2026-04-01"
+
+  - id: NET-003
+    name: "Application Subnet - AZ-A"
+    type: network
+    subtype: subnet
+    status: planned
+    environment: production
+    criticality: critical
+    owner: infra-agent
+    specs:
+      cidr: "10.0.10.0/24"
+      availability_zone: "az-a"
+    parent: NET-001
+    tags:
+      tier: infra
+      zone: application
+    created_at: "2026-04-01"
+    updated_at: "2026-04-01"
+
+  - id: NET-004
+    name: "Data Subnet - AZ-A"
+    type: network
+    subtype: subnet
+    status: planned
+    environment: production
+    criticality: critical
+    owner: infra-agent
+    specs:
+      cidr: "10.0.20.0/24"
+      availability_zone: "az-a"
+    parent: NET-001
+    tags:
+      tier: infra
+      zone: data
+    created_at: "2026-04-01"
+    updated_at: "2026-04-01"
+
+  - id: NET-005
+    name: "Load Balancer"
+    type: network
+    subtype: load_balancer
+    status: planned
+    environment: production
+    criticality: critical
+    owner: infra-agent
+    specs:
+      type: "L7 ALB"
+      protocol: HTTPS
+      port: 443
+      ssl_certificate: "cert-prod-001"
+    parent: NET-002
+    tags:
+      tier: infra
+    created_at: "2026-04-01"
+    updated_at: "2026-04-01"
+
+  - id: NET-006
+    name: "WAF (Web Application Firewall)"
+    type: network
+    subtype: waf
+    status: planned
+    environment: production
+    criticality: critical
+    owner: infra-agent
+    specs:
+      rules: "OWASP Core Rule Set"
+      mode: blocking
+    parent: NET-005
+    tags:
+      tier: infra
+    created_at: "2026-04-01"
+    updated_at: "2026-04-01"
+
+# ============================================================
+# 스토리지 자산 (Storage)
+# ============================================================
+storage:
+  - id: STR-001
+    name: "Primary Block Storage"
+    type: storage
+    subtype: block
+    status: planned
+    environment: production
+    criticality: critical
+    owner: infra-agent
+    specs:
+      capacity_gb: 1000
+      iops: 3000
+      type: "SSD"
+    tags:
+      tier: infra
+      usage: database
+    created_at: "2026-04-01"
+    updated_at: "2026-04-01"
+
+  - id: STR-002
+    name: "Object Storage (S3/MinIO)"
+    type: storage
+    subtype: object
+    status: planned
+    environment: production
+    criticality: high
+    owner: infra-agent
+    specs:
+      capacity_gb: 5000
+      versioning: true
+      encryption: "AES-256"
+    tags:
+      tier: infra
+      usage: files
+    created_at: "2026-04-01"
+    updated_at: "2026-04-01"
+
+  - id: STR-003
+    name: "Backup Storage"
+    type: storage
+    subtype: object
+    status: planned
+    environment: production
+    criticality: high
+    owner: infra-agent
+    specs:
+      capacity_gb: 2000
+      retention_days: 30
+      encryption: "AES-256"
+    tags:
+      tier: infra
+      usage: backup
+    created_at: "2026-04-01"
+    updated_at: "2026-04-01"
+
+# ============================================================
+# 데이터베이스 자산 (Database)
+# ============================================================
+databases:
+  - id: DB-001
+    name: "Primary Database"
+    type: database
+    subtype: rdbms
+    status: planned
+    environment: production
+    criticality: critical
+    owner: infra-agent
+    specs:
+      engine: "PostgreSQL 16"
+      cpu: 8
+      memory_gb: 32
+      storage_gb: 500
+      ha: true
+      replicas: 1
+      backup_schedule: "daily 02:00 KST"
+      retention_days: 30
+    network:
+      vpc: vpc-prod
+      subnet: subnet-data-a
+      private_ip: "10.0.20.10"
+      port: 5432
+    depends_on:
+      - STR-001
+    tags:
+      tier: infra
+    created_at: "2026-04-01"
+    updated_at: "2026-04-01"
+
+  - id: DB-002
+    name: "Read Replica Database"
+    type: database
+    subtype: rdbms
+    status: planned
+    environment: production
+    criticality: high
+    owner: infra-agent
+    specs:
+      engine: "PostgreSQL 16"
+      cpu: 8
+      memory_gb: 32
+      storage_gb: 500
+      role: replica
+      replication_lag_threshold_ms: 1000
+    network:
+      vpc: vpc-prod
+      subnet: subnet-data-b
+      private_ip: "10.0.20.11"
+      port: 5432
+    depends_on:
+      - DB-001
+    tags:
+      tier: infra
+    created_at: "2026-04-01"
+    updated_at: "2026-04-01"
+
+  - id: DB-003
+    name: "Cache (Redis Cluster)"
+    type: database
+    subtype: cache
+    status: planned
+    environment: production
+    criticality: high
+    owner: infra-agent
+    specs:
+      engine: "Redis 7"
+      memory_gb: 16
+      cluster_mode: true
+      nodes: 6
+      eviction_policy: "allkeys-lru"
+    network:
+      vpc: vpc-prod
+      subnet: subnet-data-a
+      private_ip: "10.0.20.20"
+      port: 6379
+    tags:
+      tier: infra
+    created_at: "2026-04-01"
+    updated_at: "2026-04-01"
+
+# ============================================================
+# 애플리케이션 자산 (Applications)
+# ============================================================
+applications:
+  - id: APP-001
+    name: "API Gateway"
+    type: application
+    subtype: gateway
+    status: planned
+    environment: production
+    criticality: critical
+    owner: platform-agent
+    specs:
+      technology: "Kong / Envoy"
+      replicas: 3
+      port: 8443
+    depends_on:
+      - SRV-003
+      - SRV-004
+      - NET-005
+    tags:
+      tier: platform
+      k8s_namespace: gateway
+    created_at: "2026-04-01"
+    updated_at: "2026-04-01"
+
+  - id: APP-002
+    name: "Backend Service A"
+    type: application
+    subtype: microservice
+    status: planned
+    environment: production
+    criticality: critical
+    owner: app-agent
+    specs:
+      technology: "[Spring Boot / FastAPI]"
+      replicas: 3
+      port: 8080
+      health_check: "/actuator/health"
+    depends_on:
+      - APP-001
+      - DB-001
+      - DB-003
+    tags:
+      tier: application
+      k8s_namespace: app
+      domain: "[도메인명]"
+    created_at: "2026-04-01"
+    updated_at: "2026-04-01"
+
+  - id: APP-003
+    name: "Backend Service B"
+    type: application
+    subtype: microservice
+    status: planned
+    environment: production
+    criticality: high
+    owner: app-agent
+    specs:
+      technology: "[Spring Boot / FastAPI]"
+      replicas: 2
+      port: 8080
+      health_check: "/actuator/health"
+    depends_on:
+      - APP-001
+      - DB-001
+      - MW-001
+    tags:
+      tier: application
+      k8s_namespace: app
+      domain: "[도메인명]"
+    created_at: "2026-04-01"
+    updated_at: "2026-04-01"
+
+  - id: APP-004
+    name: "Web Frontend"
+    type: application
+    subtype: frontend
+    status: planned
+    environment: production
+    criticality: high
+    owner: app-agent
+    specs:
+      technology: "Next.js / React"
+      replicas: 2
+      port: 3000
+    depends_on:
+      - APP-001
+    tags:
+      tier: application
+      k8s_namespace: frontend
+    created_at: "2026-04-01"
+    updated_at: "2026-04-01"
+
+# ============================================================
+# 미들웨어 자산 (Middleware)
+# ============================================================
+middleware:
+  - id: MW-001
+    name: "Message Broker (Kafka)"
+    type: middleware
+    subtype: message_broker
+    status: planned
+    environment: production
+    criticality: critical
+    owner: platform-agent
+    specs:
+      technology: "Apache Kafka 3.x"
+      brokers: 3
+      zookeeper_nodes: 3
+      retention_hours: 168
+      replication_factor: 3
+    network:
+      vpc: vpc-prod
+      subnet: subnet-data-a
+      port: 9092
+    depends_on:
+      - SRV-003
+      - SRV-004
+    tags:
+      tier: platform
+      k8s_namespace: kafka
+    created_at: "2026-04-01"
+    updated_at: "2026-04-01"
+
+  - id: MW-002
+    name: "Identity Provider (Keycloak)"
+    type: middleware
+    subtype: identity_provider
+    status: planned
+    environment: production
+    criticality: critical
+    owner: platform-agent
+    specs:
+      technology: "Keycloak 24"
+      replicas: 2
+      protocol: "OIDC / SAML 2.0"
+    depends_on:
+      - DB-001
+      - SRV-003
+    tags:
+      tier: platform
+      k8s_namespace: auth
+    created_at: "2026-04-01"
+    updated_at: "2026-04-01"
+
+  - id: MW-003
+    name: "Monitoring Stack (Prometheus + Grafana)"
+    type: middleware
+    subtype: monitoring
+    status: planned
+    environment: management
+    criticality: high
+    owner: platform-agent
+    specs:
+      prometheus_retention_days: 90
+      grafana_dashboards: true
+      alertmanager: true
+    depends_on:
+      - SRV-003
+    tags:
+      tier: platform
+      k8s_namespace: monitoring
+    created_at: "2026-04-01"
+    updated_at: "2026-04-01"
+
+  - id: MW-004
+    name: "Log Aggregation (Loki / EFK)"
+    type: middleware
+    subtype: logging
+    status: planned
+    environment: management
+    criticality: high
+    owner: platform-agent
+    specs:
+      technology: "Loki + Promtail"
+      retention_days: 30
+      storage: STR-002
+    depends_on:
+      - SRV-003
+      - STR-002
+    tags:
+      tier: platform
+      k8s_namespace: logging
+    created_at: "2026-04-01"
+    updated_at: "2026-04-01"
+
+  - id: MW-005
+    name: "GitOps Controller (ArgoCD)"
+    type: middleware
+    subtype: cicd
+    status: planned
+    environment: management
+    criticality: high
+    owner: platform-agent
+    specs:
+      technology: "ArgoCD"
+      replicas: 2
+      sync_policy: automated
+    depends_on:
+      - SRV-003
+    tags:
+      tier: platform
+      k8s_namespace: argocd
+    created_at: "2026-04-01"
+    updated_at: "2026-04-01"
+
+# ============================================================
+# 라이선스 자산 (Licenses)
+# ============================================================
+licenses:
+  - id: LIC-001
+    name: "클라우드 서비스 계약"
+    type: license
+    status: planned
+    owner: PM
+    specs:
+      vendor: "[클라우드 벤더]"
+      contract_type: "연간 계약"
+      start_date: "YYYY-MM-DD"
+      end_date: "YYYY-MM-DD"
+      cost_monthly: "[금액]"
+    tags:
+      tier: infra
+    created_at: "2026-04-01"
+    updated_at: "2026-04-01"
+
+  - id: LIC-002
+    name: "상용 소프트웨어 라이선스"
+    type: license
+    status: planned
+    owner: PM
+    specs:
+      vendor: "[벤더명]"
+      product: "[제품명]"
+      license_type: "Subscription"
+      quantity: 1
+      start_date: "YYYY-MM-DD"
+      end_date: "YYYY-MM-DD"
+    tags:
+      tier: platform
+    created_at: "2026-04-01"
+    updated_at: "2026-04-01"
+
+# ============================================================
+# 자산 간 관계 (Relationships)
+# ============================================================
+relationships:
+  # 네트워크 → 서버
+  - source: NET-001
+    target: SRV-001
+    type: hosts
+    description: "VPC가 K8s Control Plane을 호스팅"
+
+  - source: NET-001
+    target: SRV-003
+    type: hosts
+    description: "VPC가 K8s Worker Node를 호스팅"
+
+  # 서버 → 애플리케이션
+  - source: SRV-003
+    target: APP-001
+    type: runs
+    description: "Worker Node에서 API Gateway 실행"
+
+  - source: SRV-003
+    target: APP-002
+    type: runs
+    description: "Worker Node에서 Backend Service A 실행"
+
+  - source: SRV-003
+    target: APP-003
+    type: runs
+    description: "Worker Node에서 Backend Service B 실행"
+
+  # 애플리케이션 → 데이터베이스
+  - source: APP-002
+    target: DB-001
+    type: connects_to
+    description: "Service A가 Primary DB에 연결"
+
+  - source: APP-002
+    target: DB-003
+    type: connects_to
+    description: "Service A가 Redis Cache에 연결"
+
+  - source: APP-003
+    target: DB-001
+    type: connects_to
+    description: "Service B가 Primary DB에 연결"
+
+  # 데이터베이스 → 스토리지
+  - source: DB-001
+    target: STR-001
+    type: uses
+    description: "Primary DB가 Block Storage 사용"
+
+  - source: DB-001
+    target: DB-002
+    type: replicates_to
+    description: "Primary에서 Read Replica로 복제"
+
+  # 애플리케이션 → 미들웨어
+  - source: APP-002
+    target: MW-001
+    type: publishes_to
+    description: "Service A가 Kafka에 이벤트 발행"
+
+  - source: APP-003
+    target: MW-001
+    type: subscribes_to
+    description: "Service B가 Kafka에서 이벤트 소비"
+
+  # 인증 흐름
+  - source: APP-001
+    target: MW-002
+    type: authenticates_via
+    description: "API Gateway가 Keycloak을 통해 인증"
+
+  # 모니터링
+  - source: MW-003
+    target: APP-002
+    type: monitors
+    description: "Prometheus가 Service A 메트릭 수집"
+
+  - source: MW-003
+    target: APP-003
+    type: monitors
+    description: "Prometheus가 Service B 메트릭 수집"
+
+  - source: MW-004
+    target: APP-002
+    type: collects_logs_from
+    description: "Loki가 Service A 로그 수집"
+
+  # 백업
+  - source: DB-001
+    target: STR-003
+    type: backed_up_to
+    description: "Primary DB가 Backup Storage에 백업"

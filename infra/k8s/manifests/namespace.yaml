@@ -1,0 +1,92 @@
+# =============================================================================
+# Kubernetes Namespace Template — SI Boilerplate (Tier 1)
+# =============================================================================
+# Usage:
+#   export NS=my-app
+#   sed "s/SI_APP_NAMESPACE/$NS/g" namespace.yaml | kubectl apply -f -
+# =============================================================================
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: SI_APP_NAMESPACE
+  labels:
+    app.kubernetes.io/managed-by: si-boilerplate
+    app.kubernetes.io/part-of: si-project
+    environment: dev
+    # Enable Istio sidecar injection (if using Istio)
+    # istio-injection: enabled
+  annotations:
+    description: "SI project application namespace"
+    owner: infra-team
+---
+# =============================================================================
+# Resource Quota — Prevent runaway resource consumption
+# =============================================================================
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: default-quota
+  namespace: SI_APP_NAMESPACE
+  labels:
+    app.kubernetes.io/managed-by: si-boilerplate
+spec:
+  hard:
+    # Compute
+    requests.cpu: "8"
+    requests.memory: 16Gi
+    limits.cpu: "16"
+    limits.memory: 32Gi
+
+    # Storage
+    requests.storage: 100Gi
+    persistentvolumeclaims: "20"
+
+    # Object counts
+    pods: "50"
+    services: "20"
+    configmaps: "50"
+    secrets: "50"
+    replicationcontrollers: "20"
+    services.loadbalancers: "2"
+    services.nodeports: "5"
+---
+# =============================================================================
+# Limit Range — Default resource requests/limits for pods
+# =============================================================================
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: default-limits
+  namespace: SI_APP_NAMESPACE
+  labels:
+    app.kubernetes.io/managed-by: si-boilerplate
+spec:
+  limits:
+    # Default limits applied to containers without explicit resource specs
+    - type: Container
+      default:
+        cpu: 500m
+        memory: 512Mi
+      defaultRequest:
+        cpu: 100m
+        memory: 128Mi
+      max:
+        cpu: "4"
+        memory: 8Gi
+      min:
+        cpu: 50m
+        memory: 64Mi
+
+    # Pod-level limits
+    - type: Pod
+      max:
+        cpu: "8"
+        memory: 16Gi
+
+    # PVC size limits
+    - type: PersistentVolumeClaim
+      max:
+        storage: 50Gi
+      min:
+        storage: 1Gi

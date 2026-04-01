@@ -1,0 +1,13 @@
+apiVersion: v2
+name: si-app
+description: SI Boilerplate Application Tier — DDD-based Node.js service
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - si
+  - ddd
+  - node
+  - typescript
+maintainers:
+  - name: SI Team

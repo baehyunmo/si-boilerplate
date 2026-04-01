@@ -1,0 +1,180 @@
+# =============================================================================
+# Kubernetes RBAC Template — SI Boilerplate (Tier 1)
+# =============================================================================
+# Defines ServiceAccount, Role, and RoleBinding for namespace-scoped access.
+# Usage:
+#   export NS=my-app
+#   sed "s/SI_APP_NAMESPACE/$NS/g" rbac.yaml | kubectl apply -f -
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# ServiceAccount — Application workload identity
+# -----------------------------------------------------------------------------
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: app-service-account
+  namespace: SI_APP_NAMESPACE
+  labels:
+    app.kubernetes.io/managed-by: si-boilerplate
+    app.kubernetes.io/component: rbac
+  annotations:
+    description: "Service account for SI application workloads"
+automountServiceAccountToken: false
+---
+# -----------------------------------------------------------------------------
+# ServiceAccount — CI/CD Deployer
+# -----------------------------------------------------------------------------
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: deployer
+  namespace: SI_APP_NAMESPACE
+  labels:
+    app.kubernetes.io/managed-by: si-boilerplate
+    app.kubernetes.io/component: rbac
+  annotations:
+    description: "Service account for CI/CD pipeline deployments"
+automountServiceAccountToken: true
+---
+# -----------------------------------------------------------------------------
+# Role — Application (read-only for config, limited write for workloads)
+# -----------------------------------------------------------------------------
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: app-role
+  namespace: SI_APP_NAMESPACE
+  labels:
+    app.kubernetes.io/managed-by: si-boilerplate
+    app.kubernetes.io/component: rbac
+rules:
+  # Read ConfigMaps and Secrets (for app configuration)
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets"]
+    verbs: ["get", "list", "watch"]
+
+  # Read pod info (for health checks, debugging)
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "pods/status"]
+    verbs: ["get", "list", "watch"]
+
+  # Read services and endpoints
+  - apiGroups: [""]
+    resources: ["services", "endpoints"]
+    verbs: ["get", "list", "watch"]
+
+  # Events (for debugging)
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["get", "list", "watch"]
+---
+# -----------------------------------------------------------------------------
+# Role — Deployer (full namespace access for CI/CD)
+# -----------------------------------------------------------------------------
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: deployer-role
+  namespace: SI_APP_NAMESPACE
+  labels:
+    app.kubernetes.io/managed-by: si-boilerplate
+    app.kubernetes.io/component: rbac
+rules:
+  # Core resources
+  - apiGroups: [""]
+    resources:
+      - pods
+      - services
+      - configmaps
+      - secrets
+      - persistentvolumeclaims
+      - serviceaccounts
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+  # Workload resources
+  - apiGroups: ["apps"]
+    resources:
+      - deployments
+      - statefulsets
+      - daemonsets
+      - replicasets
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+  # Batch resources
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+  # Autoscaling
+  - apiGroups: ["autoscaling"]
+    resources: ["horizontalpodautoscalers"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+  # Networking
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses", "networkpolicies"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+  # RBAC (read-only — deployer should not escalate)
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["roles", "rolebindings"]
+    verbs: ["get", "list", "watch"]
+
+  # Events
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["get", "list", "watch"]
+---
+# -----------------------------------------------------------------------------
+# Role — Read-Only (for monitoring/auditing)
+# -----------------------------------------------------------------------------
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: readonly-role
+  namespace: SI_APP_NAMESPACE
+  labels:
+    app.kubernetes.io/managed-by: si-boilerplate
+    app.kubernetes.io/component: rbac
+rules:
+  - apiGroups: ["", "apps", "batch", "autoscaling", "networking.k8s.io"]
+    resources: ["*"]
+    verbs: ["get", "list", "watch"]
+---
+# -----------------------------------------------------------------------------
+# RoleBindings
+# -----------------------------------------------------------------------------
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: app-role-binding
+  namespace: SI_APP_NAMESPACE
+  labels:
+    app.kubernetes.io/managed-by: si-boilerplate
+    app.kubernetes.io/component: rbac
+subjects:
+  - kind: ServiceAccount
+    name: app-service-account
+    namespace: SI_APP_NAMESPACE
+roleRef:
+  kind: Role
+  name: app-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: deployer-role-binding
+  namespace: SI_APP_NAMESPACE
+  labels:
+    app.kubernetes.io/managed-by: si-boilerplate
+    app.kubernetes.io/component: rbac
+subjects:
+  - kind: ServiceAccount
+    name: deployer
+    namespace: SI_APP_NAMESPACE
+roleRef:
+  kind: Role
+  name: deployer-role
+  apiGroup: rbac.authorization.k8s.io
