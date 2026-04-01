@@ -1,0 +1,33 @@
+# Helmfile — Kubernetes Release Management
+# SI Boilerplate: Infrastructure Tier (Tier 1)
+#
+# Usage:
+#   helmfile -e <environment> sync
+#   helmfile -e <environment> diff
+
+environments:
+  dev:
+    values:
+      - environments/dev.yaml
+  staging:
+    values:
+      - environments/staging.yaml
+  production:
+    values:
+      - environments/production.yaml
+
+---
+
+repositories:
+  # Add Helm chart repositories here
+  # - name: bitnami
+  #   url: https://charts.bitnami.com/bitnami
+
+releases: []
+  # Example release:
+  # - name: ingress-nginx
+  #   namespace: ingress
+  #   chart: ingress-nginx/ingress-nginx
+  #   version: 4.x.x
+  #   values:
+  #     - values/ingress-nginx.yaml

@@ -1,0 +1,22 @@
+# ITSM Asset Register
+# SI Boilerplate: Governance Tier (Tier 4)
+#
+# 자산 유형: server, network, storage, software, license
+# 상태: active, inactive, decommissioned, reserved
+
+assets: []
+  # - id: ASSET-001
+  #   name: "Production K8s Master"
+  #   type: server
+  #   status: active
+  #   owner: infra-team
+  #   location: datacenter-a
+  #   specs:
+  #     cpu: 8
+  #     memory_gb: 32
+  #     storage_gb: 500
+  #   tags:
+  #     environment: production
+  #     tier: infra
+  #   created_at: "2026-04-01"
+  #   updated_at: "2026-04-01"

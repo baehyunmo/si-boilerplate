@@ -1,0 +1,27 @@
+# Forge Project Metadata
+# This file is used by `forge init` to instantiate a new SI project.
+
+project:
+  name: ""           # 프로젝트명
+  client: ""         # 고객사
+  code: ""           # 프로젝트 코드
+  start_date: ""     # 시작일 (YYYY-MM-DD)
+  end_date: ""       # 종료일 (YYYY-MM-DD)
+
+tiers:
+  infra:
+    agent: infra-agent
+    path: infra/
+  platform:
+    agent: platform-agent
+    path: platform/
+  application:
+    agent: app-agent
+    path: application/
+  governance:
+    agent: gov-agent
+    path: governance/
+
+sr_gateway:
+  url: "https://forge-sr.<account>.workers.dev/sr"
+  auth: "Bearer ${FORGE_SR_TOKEN}"
